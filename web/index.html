@@ -94,7 +94,7 @@
 
       .metrics {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 8px;
       }
 
@@ -257,6 +257,7 @@
             <div class="metric"><span>動作</span><strong id="run">-</strong></div>
             <div class="metric"><span>方向</span><strong id="dir">-</strong></div>
             <div class="metric"><span>速度 steps/s</span><strong id="speed">-</strong></div>
+            <div class="metric"><span>実回転速度</span><strong id="liveSpeed">-</strong></div>
           </div>
         </section>
 
@@ -327,6 +328,7 @@
       let activeJogDirection = 0;
       let configDirty = false;
       let applyingConfig = false;
+      let lastRealtimeSample = null;
 
       const $ = (id) => document.getElementById(id);
       const commandButtons = [
@@ -417,6 +419,39 @@
         return `${sign}${wholeSteps}.${microstepRemainder}/${denominator}`;
       }
 
+      function formatRealtimeSpeed(status) {
+        const position = Number(status.position);
+        const microstep = Math.max(1, Number(status.microstep || 1));
+        const now = performance.now();
+
+        if (!Number.isFinite(position) || !Number.isFinite(microstep)) {
+          lastRealtimeSample = null;
+          return '-';
+        }
+
+        if (!lastRealtimeSample) {
+          lastRealtimeSample = { position, microstep, time: now };
+          return '-';
+        }
+
+        const elapsedSeconds = (now - lastRealtimeSample.time) / 1000;
+        const deltaMicrosteps = position - lastRealtimeSample.position;
+        lastRealtimeSample = { position, microstep, time: now };
+
+        if (elapsedSeconds <= 0) {
+          return '-';
+        }
+
+        const degreesPerSecond = (deltaMicrosteps / microstep) * 1.8 / elapsedSeconds;
+        const rpm = degreesPerSecond / 360 * 60;
+
+        if (Math.abs(degreesPerSecond) < 0.005) {
+          return '0.00 deg/s';
+        }
+
+        return `${degreesPerSecond.toFixed(2)} deg/s ${rpm.toFixed(3)} rpm`;
+      }
+
       async function sendJog() {
         if (!activeJogDirection) {
           return;
@@ -447,6 +482,7 @@
         $('run').textContent = status.running ? 'RUNNING' : 'STOPPED';
         $('dir').textContent = status.direction ?? '-';
         $('speed').textContent = status.speedHz ?? '-';
+        $('liveSpeed').textContent = formatRealtimeSpeed(status);
 
         if (applyingConfig) {
           const applied =
@@ -502,6 +538,7 @@
         updateStatus(JSON.parse(decoder.decode(initial)));
         configDirty = false;
         applyingConfig = false;
+        lastRealtimeSample = null;
         setConnected(true);
         setMessage('BLE接続しました。');
       }
@@ -510,6 +547,7 @@
         stopJog().catch(() => {});
         commandCharacteristic = null;
         statusCharacteristic = null;
+        lastRealtimeSample = null;
         setConnected(false);
         setMessage('BLE接続が切断されました。');
       }
@@ -554,7 +592,10 @@
       });
       $('enableButton').addEventListener('click', () => writeCommand('E,1').catch(console.error));
       $('disableButton').addEventListener('click', () => writeCommand('E,0').catch(console.error));
-      $('resetButton').addEventListener('click', () => writeCommand('R').catch(console.error));
+      $('resetButton').addEventListener('click', () => {
+        lastRealtimeSample = null;
+        writeCommand('R').catch(console.error);
+      });
       $('moveCcwButton').addEventListener('click', async () => {
         try {
           await sendConfig();
