@@ -7,17 +7,42 @@
 
 namespace {
 
+#ifndef MOTOR_PIN_DIR
+#error "MOTOR_PIN_DIR is not defined. Set board-specific motor pins in platformio.ini."
+#endif
+#ifndef MOTOR_PIN_STEP
+#error "MOTOR_PIN_STEP is not defined. Set board-specific motor pins in platformio.ini."
+#endif
+#ifndef MOTOR_PIN_MS1
+#error "MOTOR_PIN_MS1 is not defined. Set board-specific motor pins in platformio.ini."
+#endif
+#ifndef MOTOR_PIN_MS2
+#error "MOTOR_PIN_MS2 is not defined. Set board-specific motor pins in platformio.ini."
+#endif
+#ifndef MOTOR_PIN_MS3
+#error "MOTOR_PIN_MS3 is not defined. Set board-specific motor pins in platformio.ini."
+#endif
+#ifndef MOTOR_PIN_EN
+#error "MOTOR_PIN_EN is not defined. Set board-specific motor pins in platformio.ini."
+#endif
+
+#if defined(MOTOR_BOARD_XIAO_ESP32S3)
 constexpr char DEVICE_NAME[] = "XIAO BLE Motor";
+#elif defined(MOTOR_BOARD_ESP32DEV)
+constexpr char DEVICE_NAME[] = "ESP32 BLE Motor";
+#else
+constexpr char DEVICE_NAME[] = "BLE Motor Controller";
+#endif
 constexpr char SERVICE_UUID[] = "7b7f0001-9b6d-4f8b-8c5d-9bb6f6f68c01";
 constexpr char COMMAND_UUID[] = "7b7f0002-9b6d-4f8b-8c5d-9bb6f6f68c01";
 constexpr char STATUS_UUID[] = "7b7f0003-9b6d-4f8b-8c5d-9bb6f6f68c01";
 
-constexpr int DIR = D8;
-constexpr int STEP = D9;
-constexpr int MS1 = D0;
-constexpr int MS2 = D1;
-constexpr int MS3 = D2;
-constexpr int EN = D3;
+constexpr int DIR = MOTOR_PIN_DIR;
+constexpr int STEP = MOTOR_PIN_STEP;
+constexpr int MS1 = MOTOR_PIN_MS1;
+constexpr int MS2 = MOTOR_PIN_MS2;
+constexpr int MS3 = MOTOR_PIN_MS3;
+constexpr int EN = MOTOR_PIN_EN;
 
 constexpr uint32_t STATUS_INTERVAL_MS = 100;
 constexpr int32_t MIN_SPEED_HZ = 1;

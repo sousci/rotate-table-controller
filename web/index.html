@@ -417,7 +417,7 @@
         }
 
         device = await navigator.bluetooth.requestDevice({
-          filters: [{ namePrefix: 'XIAO BLE Motor' }],
+          filters: [{ services: [SERVICE_UUID] }],
           optionalServices: [SERVICE_UUID]
         });
         device.addEventListener('gattserverdisconnected', onDisconnected);

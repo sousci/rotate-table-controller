@@ -10,7 +10,10 @@ ESP32をBLEペリフェラルにして、Web Bluetooth対応ブラウザからA4
 
 ## BLE仕様
 
-Device name: `XIAO BLE Motor`
+Device name:
+
+- XIAO ESP32S3: `XIAO BLE Motor`
+- ESP32 DevKit: `ESP32 BLE Motor`
 
 Service UUID: `7b7f0001-9b6d-4f8b-8c5d-9bb6f6f68c01`
 
@@ -39,11 +42,26 @@ Web BluetoothはHTTPSまたはlocalhost上でのみ動作します。GitHub Page
 ## ビルド
 
 ```powershell
-platformio run
+platformio run -e seeed_xiao_esp32s3
+platformio run -e esp32dev
 ```
 
 書き込み:
 
 ```powershell
-platformio run --target upload
+platformio run -e seeed_xiao_esp32s3 --target upload
+platformio run -e esp32dev --target upload
 ```
+
+## ピン割り当て
+
+| Signal | XIAO ESP32S3 | ESP32 DevKit |
+| --- | --- | --- |
+| DIR | D8 | GPIO26 |
+| STEP | D9 | GPIO25 |
+| MS1 | D0 | GPIO14 |
+| MS2 | D1 | GPIO27 |
+| MS3 | D2 | GPIO33 |
+| EN | D3 | GPIO32 |
+
+ESP32 DevKitで別のGPIOを使う場合は、`platformio.ini` の `[env:esp32dev]` の `MOTOR_PIN_*` を変更してください。
