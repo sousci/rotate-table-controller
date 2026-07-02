@@ -300,10 +300,6 @@
                 <option value="16">1/16</option>
               </select>
             </label>
-            <label>
-              d (us)
-              <input id="dValue" type="number" min="100" max="1000000" value="3000">
-            </label>
           </div>
           <div class="button-row">
             <button id="applyButton" disabled>設定適用</button>
@@ -367,6 +363,34 @@
         return Math.max(1, Math.min(50000, Number($('accel').value || 1)));
       }
 
+      function currentSpeed() {
+        return Math.max(1, Math.min(5000, Number($('jogSpeed').value || 1)));
+      }
+
+      function currentSteps() {
+        return Math.max(1, Number($('steps').value || 1));
+      }
+
+      function speedToD(speed) {
+        return Math.max(100, Math.round(500000 / Math.max(1, Number(speed || 1))));
+      }
+
+      function dToSpeed(d) {
+        return Math.max(1, Math.min(5000, Math.round(500000 / Math.max(100, Number(d || 100)))));
+      }
+
+      function setSpeedControl(speed) {
+        const resolvedSpeed = Math.max(1, Math.min(5000, Number(speed || 1)));
+        $('jogSpeed').value = resolvedSpeed;
+        $('jogSpeedLabel').textContent = resolvedSpeed;
+      }
+
+      async function sendConfig() {
+        const ms = Number($('microstep').value);
+        const d = speedToD(currentSpeed());
+        await writeCommand(`C,${ms},${d},${currentSteps()},${currentAccel()}`);
+      }
+
       function markConfigDirty() {
         if (!applyingConfig) {
           configDirty = true;
@@ -397,7 +421,7 @@
         if (!activeJogDirection) {
           return;
         }
-        const speed = Math.max(1, Math.min(5000, Number($('jogSpeed').value || 1)));
+        const speed = currentSpeed();
         await writeCommand(`V,${speed * activeJogDirection},${currentAccel()}`);
       }
 
@@ -427,8 +451,8 @@
         if (applyingConfig) {
           const applied =
             Number($('microstep').value) === Number(status.microstep) &&
-            Number($('dValue').value) === Number(status.d) &&
-            Number($('steps').value) === Number(status.stepCount) &&
+            speedToD(currentSpeed()) === Number(status.d) &&
+            currentSteps() === Number(status.stepCount) &&
             Number($('accel').value) === Number(status.acceleration);
 
           if (applied) {
@@ -440,7 +464,7 @@
 
         if (!configDirty && !applyingConfig) {
           $('microstep').value = status.microstep ?? $('microstep').value;
-          $('dValue').value = status.d ?? $('dValue').value;
+          setSpeedControl(dToSpeed(status.d));
           $('steps').value = status.stepCount ?? $('steps').value;
           $('accel').value = status.acceleration ?? $('accel').value;
         }
@@ -522,11 +546,8 @@
         await writeCommand('S');
       });
       $('applyButton').addEventListener('click', () => {
-        const ms = Number($('microstep').value);
-        const d = Math.max(100, Number($('dValue').value || 100));
-        const steps = Math.max(1, Number($('steps').value || 1));
         applyingConfig = true;
-        writeCommand(`C,${ms},${d},${steps},${currentAccel()}`).catch((error) => {
+        sendConfig().catch((error) => {
           applyingConfig = false;
           setMessage(error.message);
         });
@@ -534,15 +555,37 @@
       $('enableButton').addEventListener('click', () => writeCommand('E,1').catch(console.error));
       $('disableButton').addEventListener('click', () => writeCommand('E,0').catch(console.error));
       $('resetButton').addEventListener('click', () => writeCommand('R').catch(console.error));
-      $('moveCcwButton').addEventListener('click', () => writeCommand(`M,-${Math.max(1, Number($('steps').value || 1))}`).catch(console.error));
-      $('moveCwButton').addEventListener('click', () => writeCommand(`M,${Math.max(1, Number($('steps').value || 1))}`).catch(console.error));
-      $('singleButton').addEventListener('click', () => writeCommand('M,1').catch(console.error));
+      $('moveCcwButton').addEventListener('click', async () => {
+        try {
+          await sendConfig();
+          await writeCommand(`M,-${currentSteps()}`);
+        } catch (error) {
+          setMessage(error.message);
+        }
+      });
+      $('moveCwButton').addEventListener('click', async () => {
+        try {
+          await sendConfig();
+          await writeCommand(`M,${currentSteps()}`);
+        } catch (error) {
+          setMessage(error.message);
+        }
+      });
+      $('singleButton').addEventListener('click', async () => {
+        try {
+          await sendConfig();
+          await writeCommand('M,1');
+        } catch (error) {
+          setMessage(error.message);
+        }
+      });
       $('jogSpeed').addEventListener('input', () => {
         $('jogSpeedLabel').textContent = $('jogSpeed').value;
+        markConfigDirty();
         sendJog().catch(console.error);
       });
 
-      ['microstep', 'dValue', 'steps', 'accel'].forEach((id) => {
+      ['microstep', 'steps', 'accel'].forEach((id) => {
         $(id).addEventListener('input', markConfigDirty);
         $(id).addEventListener('change', markConfigDirty);
       });

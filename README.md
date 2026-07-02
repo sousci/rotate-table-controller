@@ -39,6 +39,8 @@ R
 
 Web BluetoothはHTTPSまたはlocalhost上でのみ動作します。GitHub Pagesに公開したURLへChromeまたはEdgeでアクセスしてください。iOS SafariはWeb Bluetoothに対応していません。
 
+Webアプリの速度入力は `steps/s` に統一しています。ファームウェア内部の `d_us` は、Webアプリ側で `d_us = 500000 / steps_per_second` として自動換算して送信します。
+
 ## ビルド
 
 ```powershell
