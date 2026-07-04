@@ -445,11 +445,11 @@
         const degreesPerSecond = (deltaMicrosteps / microstep) * 1.8 / elapsedSeconds;
         const rpm = degreesPerSecond / 360 * 60;
 
-        if (Math.abs(degreesPerSecond) < 0.005) {
-          return '0.00 deg/s';
+        if (Math.abs(rpm) < 0.005) {
+          return '0 rpm';
         }
 
-        return `${degreesPerSecond.toFixed(2)} deg/s ${rpm.toFixed(3)} rpm`;
+        return `${Math.round(rpm)} rpm`;
       }
 
       async function sendJog() {
